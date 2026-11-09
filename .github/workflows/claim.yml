@@ -1,0 +1,29 @@
+name: 雀魂月卡奖励
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *' # UTC 01:00 = Asia/Shanghai 09:00; GitHub may delay execution.
+permissions:
+  contents: read
+concurrency:
+  group: majsoul-month-ticket
+  cancel-in-progress: false
+jobs:
+  claim:
+    if: github.event_name == 'workflow_dispatch' || vars.MAJSOUL_AUTO_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - name: 登录并领取月卡奖励
+        run: npm start
+        env:
+          MAJSOUL_EMAIL: ${{ secrets.MAJSOUL_EMAIL }}
+          MAJSOUL_PASSWORD: ${{ secrets.MAJSOUL_PASSWORD }}
