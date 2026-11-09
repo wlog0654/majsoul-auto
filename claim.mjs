@@ -1,5 +1,5 @@
 import { appendFile } from 'node:fs/promises';
-import { connect, loginBody } from './client.mjs';
+import { connect, loginBody, currentLoginVersion } from './client.mjs';
 import { ticketStatus } from './status.mjs';
 async function report(message) {
   console.log(message);
@@ -16,7 +16,9 @@ try {
     await report('连接检查通过：已完成官方线路握手；未登录、未领取。');
   } else {
     console.log('步骤 3/4：登录账号并查询月卡（只尝试一次登录）。');
-    const login = await client.rpc('Lobby', 'login', loginBody(email, password, connection.version));
+    const version = currentLoginVersion();
+    console.log(`登录版本：资源 ${version.resource}，程序包 ${version.package}，WebGL_2022-${version.resource}。`);
+    const login = await client.rpc('Lobby', 'login', loginBody(email, password, version));
     if (!login.account_id) throw new Error('LOGIN_NOT_CONFIRMED');
     if (Number(login.account?.frozen_state || 0) !== 0) throw new Error('LOGIN_ACCOUNT_RESTRICTED');
     let response = await client.rpc('Lobby', 'fetchMonthTicketInfo');
@@ -39,6 +41,7 @@ try {
   // Log only our fixed error codes; never log request/response bodies or credentials.
   const message = String(error?.message || '');
   const code = /^[A-Z][A-Za-z0-9_]{1,80}$/.test(message) ? message : 'CLIENT_ERROR';
-  await report(`领取未完成：${code}。请检查网络、Secrets、账号验证或协议兼容性。`);
+  const detail = code === 'RPC_login_151' ? '服务器要求更新客户端版本；请更新仓库的 client-version.json 并核对登录协议，勿重复尝试密码。' : '请检查网络、Secrets、账号验证或协议兼容性。';
+  await report(`领取未完成：${code}。${detail}`);
   process.exitCode = 1;
 } finally {client?.close();}

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import protobuf from 'protobufjs';
-import { Client, trustedUrl, encodeRequest } from '../client.mjs';
+import { Client, trustedUrl, encodeRequest, loginBody, currentLoginVersion } from '../client.mjs';
 const root = protobuf.parse(`syntax="proto3"; package lq;
 message Wrapper {string name=1; bytes data=2;}
 message Error {uint32 code=1;}
@@ -49,4 +49,13 @@ test('timeout and close reject waiting requests; purchases are blocked', async (
   await assert.rejects(client.rpc('Route','requestConnection',{},10),/RPC_TIMEOUT/);
   const promise = client.rpc('Route','requestConnection'); client.close();
   await assert.rejects(promise,/SOCKET_CLOSED/); assert.equal(client.pending.size,0);
+});
+
+test('Unity login sends resource, package and current platform version format', () => {
+  const version = currentLoginVersion();
+  const request = loginBody('test@example.invalid', 'example-password', version);
+  assert.deepEqual(request.client_version, {resource: '0.16.290', package: '4.0.51'});
+  assert.equal(request.client_version_string, 'WebGL_2022-0.16.290');
+  assert.equal(request.password.length, 64);
+  assert.notEqual(request.password, 'example-password');
 });

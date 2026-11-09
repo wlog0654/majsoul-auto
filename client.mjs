@@ -1,4 +1,5 @@
 import https from 'node:https';
+import { readFileSync } from 'node:fs';
 import { createHmac, randomUUID } from 'node:crypto';
 import protobuf from 'protobufjs';
 import WebSocket from 'ws';
@@ -139,9 +140,14 @@ export async function connect(log = console.log) {
   }
   throw new Error('ROUTE_UNREACHABLE');
 }
+export function currentLoginVersion() {
+  const value = JSON.parse(readFileSync(new URL('./client-version.json', import.meta.url), 'utf8'));
+  if (!/^\d+\.\d+\.\d+$/.test(value.resource) || !/^\d+\.\d+\.\d+$/.test(value.package) || value.platform !== 'WebGL') throw new Error('LOGIN_VERSION_CONFIG');
+  return value;
+}
 export function loginBody(email, password, version) {
   return {account: email, password: createHmac('sha256', 'lailai').update(password).digest('hex'), reconnect: false,
     device: {platform: 'pc', hardware: 'pc', os: 'linux', os_version: 'ubuntu-24.04', is_browser: true, software: 'Chrome', sale_platform: 'web'},
-    random_key: randomUUID(), client_version: {resource: version}, gen_access_token: false,
-    currency_platforms: [], type: 0, client_version_string: `web-${version.replace('.w', '')}`, tag: 'cn'};
+    random_key: randomUUID(), client_version: {resource: version.resource, package: version.package}, gen_access_token: false,
+    currency_platforms: [], type: 0, client_version_string: `WebGL_2022-${version.resource}`, tag: 'cn'};
 }

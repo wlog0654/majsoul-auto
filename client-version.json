@@ -1,0 +1,6 @@
+{
+  "resource": "0.16.290",
+  "package": "4.0.51",
+  "platform": "WebGL",
+  "source": "Official docs_version/version.json, Unity page productVersion, and GameUtility.GetClientVersionString; checked 2026-11-10"
+}
