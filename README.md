@@ -1,59 +1,117 @@
 # 雀魂月卡自动领取
 
-在 GitHub Actions 云端运行，你的电脑可以关机。针对 https://game.maj-soul.com/1/ 的邮箱密码登录。
+通过 GitHub Actions 每天在云端登录雀魂、检查月卡并领取当日奖励。电脑可以关机，不需要安装雀魂或保持浏览器打开。
 
-**当前状态：真实账号登录和已领取状态查询已通过；新增自动读取官方版本。每日定时仍由 MAJSOUL_AUTO_ENABLED 控制。**
+**当前仅适配 [雀魂繁中网页版 game.maj-soul.com/1/](https://game.maj-soul.com/1/) 的邮箱账号＋密码登录。** 手机验证码、Google／Facebook 等第三方登录、日服／美服／其他入口，以及其他客户端的专用登录方式，均未适配或验证。请先确认自己的账号能在上述网址用邮箱和密码直接登录。
 
-## 配置（只需一次）
+项目通过服务接口完成操作，不启动完整游戏。没有月卡时不会购买、充值或进行对局。本项目为社区工具，与雀魂官方无隶属关系。
 
-1. 打开本仓库 **Settings → Secrets and variables → Actions → Secrets → New repository secret**，添加：
-   - `MAJSOUL_EMAIL`：雀魂登录邮箱。
-   - `MAJSOUL_PASSWORD`：雀魂登录密码。
-   Codex 个人保险库中的值不会自动同步到 GitHub，请在 GitHub 单独添加。
-2. 进入 **Actions → 雀魂月卡奖励 → Run workflow → Run workflow**，进行首次实际领取测试。
-3. 查看该次运行的 Summary。只有出现“月卡奖励领取成功”或“本游戏日的月卡奖励已领取”才表示账号流程正常；无有效月卡时不会购买。
-4. 首次测试通过后，在 **Settings → Secrets and variables → Actions → Variables → New repository variable** 添加 `MAJSOUL_AUTO_ENABLED`，值填 `true`。
+已验证真实账号登录、月卡查询和“本游戏日已领取”的判断；**尚未完成“未领取 → 调用领取接口 → 成功核验”的真实账号验收**，欢迎反馈脱敏后的运行结果。不能保证所有账号或未来版本都可用。
 
-启用后每天北京时间 **09:00**（UTC 01:00）运行。GitHub 调度可能延迟，偶尔可能不运行，不保证准点。
+## 快速开始
 
-暂停：将 `MAJSOUL_AUTO_ENABLED` 改为 `false`，或在 Actions 中 Disable workflow。手动 Run workflow 始终会进行一次真实领取尝试。
+需要一个 GitHub 账号、可登录上述网页的雀魂邮箱账号和有效月卡。以下全部操作都在**你自己的 Fork 仓库**中进行，不要把账号密码填到原仓库，也不需要提供给作者。
 
-## 行为
+### 1. Fork 到自己的账号
 
-- 读取官网发布的协议、版本和线路配置，通过 TLS WebSocket 连接服务；不再加载游戏页面，也不安装浏览器。
-- 查询月卡；过期或没有月卡时结束；本游戏日已领取时跳过。
-- 可领取时调用官方客户端使用的 `payMonthTicket`（这是每日奖励领取接口），随后重新查询以核验领取时间。
-- 不购买月卡，不充值，不进行对局。
-- 遇到验证码、登录限制、接口更新、网络故障时失败退出，不绕过验证、不自动重复尝试登录。
-- 不保存浏览器登录状态，不上传截图、浏览器控制台日志或响应内容；运行日志仅含固定状态和错误码。
-- 同仓库的任务串行运行，避免手动与定时任务同时领取。
+点击本页右上角 **Fork → Create fork**。之后确认地址为 `github.com/你的用户名/majsoul-auto`。
 
-## 排错
+Fork 只复制代码，不会复制作者或其他人的 Secrets、Variables 和通知设置。不要直接下载 ZIP；单独下载文件不会创建 GitHub 定时任务。
 
-- `MISSING_SECRETS`：检查两个 Repository Secrets 的名称和值。
-- `RPC_login_数字`：服务器拒绝登录。请先在官网手动登录检查密码、账号验证或限制。
-- `GATEWAY_UNREACHABLE` / `ROUTE_UNREACHABLE`：线路网络或握手失败。`RPC_login_数字` 代表服务器拒绝登录；协议或版本更新也可能需要适配。
-- `CLAIM_NOT_VERIFIED`：领取后未能核验，先到游戏查看，避免立即反复重跑。
-- 任务显示 Skipped：检查 Repository Variable `MAJSOUL_AUTO_ENABLED` 是否为小写 `true`。
+### 2. 启用 GitHub Actions
 
-仓库当前为公开仓库：代码和 Actions 日志可能公开，但 GitHub Secrets 的值不写入仓库。不要把账号密码提交到文件、Issue 或截图中。如果希望隐藏运行记录，可将仓库改为私有；私有仓库受账号 Actions 额度限制。公开仓库长期没有活动时，GitHub 可能暂停定时工作流（通常为 60 天），届时需重新启用。
+进入自己仓库的 **Actions**。如果看到工作流尚未启用的提示，点击 **I understand my workflows, go ahead and enable them** 或相应的启用按钮。
 
-## 本地开发
+再选择左侧 **雀魂月卡奖励**。如果页面提示定时工作流已禁用，通过 **Enable workflow** 启用。Fork 的定时工作流默认可能处于禁用状态；只填写变量还不够。
 
-Node.js 22：`npm ci`、`npm test`。`node claim.mjs --check-connection` 可在不提供账号、不登录、不领取的情况下验证服务器连接。用环境变量提供账号后运行 `npm start`。这会进行真实领取，不是模拟运行。
+### 3. 保存邮箱和密码
 
-11 项测试覆盖消息编解码、响应匹配、错误和超时处理、接口限制，以及游戏日边界与重复领取。云端已通过实际线路握手测试；这些检查不能替代真实账号验收。
+进入自己仓库的 **Settings → Secrets and variables → Actions → Secrets → New repository secret**，分别添加：
 
-## Unity 登录版本适配
+| Name | Secret 内容 |
+|---|---|
+| `MAJSOUL_EMAIL` | 雀魂登录邮箱 |
+| `MAJSOUL_PASSWORD` | 雀魂登录密码 |
 
-`151` 的官方含义为“游戏版本过旧”，不代表密码错误。当前已按新版官方代码适配：`client_version.resource=0.16.290`、`client_version.package=4.0.51`、`client_version_string=WebGL_2022-0.16.290`。网页显示的 `.W` 是平台标记，不加入 resource 字段。
+每项填完点击 **Add secret**。使用 **Repository secrets**，无需创建 Environment。名称须完全一致；内容不要额外加引号或前后空格。GitHub 通知邮箱和雀魂登录邮箱可以不同。
 
-GitHub Actions 每次先执行 `tools/resolve_version.py`：从官网页面读取程序包版本，从当前官方资源索引定位 `docs_version/version.json` 所在的 bundle，解析其中的资源版本，生成 `work/current-client-version.json`。登录步骤通过 `MAJSOUL_VERSION_FILE` 使用这份实时结果。无需为了普通版本号更新手动修改仓库或新增 Secrets。
+密码只保存在自己仓库的 Secrets 中。不要写到代码、README、Issue、聊天或截图里。仓库管理员及能修改工作流的人可以通过代码使用 Secrets，请谨慎授予写权限。
 
-读取失败、出现多个冲突版本、官方资源路径或格式改变时，本次直接失败，不使用旧配置继续登录，也不自动重试密码。`client-version.json` 仅作为本地开发的手动版本配置；GitHub 工作流不会回退到它。
+### 4. 手动运行一次
 
-自动跟随的是版本数据，不能自动修改登录协议、编写或执行官方下发的游戏代码。若协议、加密、握手方式或奖励接口改变，仍需人工维护。失败会出现在 Actions；如需邮件通知，请在 GitHub 个人 Settings → Notifications → Actions 中启用失败通知。
+进入 **Actions → 雀魂月卡奖励 → Run workflow**，分支选择 `main`，再点 **Run workflow**。
 
-线路握手已补齐 Unity 协议字段 `ReqRequestConnection.platform`（字段号 6，字符串 `Web`）。仅修改登录版本不足以兼容新版服务。无账号密码的诊断请求补齐该字段后，返回值从 `151` 变为 `1002`；之后已由用户在 GitHub Actions 实测确认真实账号登录及已领取状态查询成功。
+打开这次新运行，查看 **Summary** 或最后的“登录并领取月卡奖励”步骤：
 
-版本解析需要 Python 和 `requirements-version.txt` 中的 UnityPy；4 项 Python 测试另行运行。用于解析少量官方资源，不安装浏览器、不下载和启动完整游戏。
+| 日志结果 | 含义 |
+|---|---|
+| 月卡奖励领取成功，服务器已确认今日领取状态 | 领取请求成功，随后查询也确认已领取 |
+| 本游戏日的月卡奖励已领取，无需重复领取 | 登录、查询成功；可能已经通过游戏自动领取 |
+| 未发现有效月卡，未领取、未购买 | 账号没有有效月卡，不会自动续费 |
+| 领取未完成：错误码 | 本次失败，见下方排错说明 |
+
+绿色完成表示脚本正常结束，**不一定表示本次发放了新奖励**，例如今日已领或没有月卡也会正常结束。正常登录游戏进入主界面也可能自动领取，所以先以服务器查询结果为准。
+
+改过代码后要从工作流页面**新建 Run workflow**。旧记录里的 **Re-run jobs** 会继续使用旧提交的代码。
+
+### 5. 开启每日定时
+
+手动测试通过后，进入 **Settings → Secrets and variables → Actions → Variables → New repository variable**：
+
+| Name | Value |
+|---|---|
+| `MAJSOUL_AUTO_ENABLED` | `true` |
+
+这里使用 **Variables**，不是 Secrets；`true` 为小写，不加引号。
+
+开启后，每天北京时间 **上午 09:00**（UTC 01:00）运行。GitHub 调度可能延迟或漏跑，不保证准点；定时任务只读取默认分支的工作流。
+
+暂停：将该变量改为 `false`，或在 Actions 工作流页面选择 **Disable workflow**。无论变量是否开启，手动 **Run workflow** 都会进行一次真实登录和领取检查。
+
+首次开启后，请在第二天检查是否出现触发来源为 **schedule** 的运行，而不只确认手动运行成功。
+
+## 开启手机邮件通知
+
+不需要给本项目配置邮箱密码或 SMTP：直接使用 GitHub 的工作流邮件通知。
+
+1. 打开 [GitHub 个人通知设置](https://github.com/settings/notifications)。这是个人账号设置，不是仓库 Secrets 页面。
+2. 找到 **Actions／工作流通知**，开启 **Email**；如果界面提供“工作流完成时通知我”的选项，也开启它。
+3. 想同时收到成功和失败的通知时，取消勾选 **Only notify for failed workflows／仅失败时通知**。
+4. 确认 GitHub 的通知邮箱正确、已验证；在手机邮箱 App 中开启推送。如果没有收到，检查垃圾邮件和通知过滤规则。
+5. 用自己的账号手动 **Run workflow** 一次，检查是否能收到完成邮件。定时运行后的邮件也需要在首次 schedule 执行后确认；GitHub 的通知接收人会受工作流触发者、定时配置的修改者和个人设置影响。
+
+邮件主要提示**工作流成功或失败**，具体“领取成功／已经领取／没有月卡”请点开运行 Summary。GitHub 邮件不是独立漏跑监测：任务没有启动、被暂停或未触发时，可能不会有任何完成邮件。
+
+## 更新如何跟进
+
+- **普通版本号更新**：每次运行自动读取官方当前资源版本、程序包版本，无需手动改版本号。
+- **官方资源路径／格式变化**：读取失败时停止本次运行，不使用旧版本继续登录。
+- **登录协议、握手、验证或奖励接口变化**：不能自动修复，需要维护者调整代码。
+
+**Fork 不会自动跟随原仓库的代码修复。** 原仓库修复问题后，打开自己的 Fork，使用 **Sync fork → Update branch** 同步，再新建一次 Run workflow 验证。同步前查看更新内容；工作流和脚本能够使用你的 Secrets。若自己修改过代码出现冲突，请先处理冲突，不要盲目覆盖。
+
+公开仓库长期没有活动时，GitHub 可能暂停定时工作流（通常为 60 天）。需要回到 Actions 重新启用，不能把这项服务当成永久免维护的保证。Fork 的可见性受 GitHub 规则限制；如需私有仓库，可自行创建私有仓库并导入代码，私有仓库的 Actions 使用量受账号额度限制。
+
+## 常见问题
+
+| 现象 | 处理方法 |
+|---|---|
+| `MISSING_SECRETS` | 检查自己仓库里的两个 Repository Secrets 名称和值 |
+| 任务显示 Skipped | 检查 Variables 中 `MAJSOUL_AUTO_ENABLED` 是否为小写 `true`；手动运行不受此变量限制 |
+| 没有每日运行记录 | 检查 Fork 的 Actions 和定时工作流是否启用、变量是否开启、默认分支以及长期无活动暂停情况；调度也可能延迟 |
+| `RPC_login_151` | 版本或协议不兼容；查看自动读取版本的日志，检查上游更新，勿反复改密码重试 |
+| 其他 `RPC_login_数字` | 服务器拒绝登录；先确认官方网页可以用邮箱密码登录，再提交脱敏错误码 |
+| `VERSION_…` | 官方版本读取失败或资源格式改变；看失败步骤和上游更新，不要填猜测的版本号 |
+| `GATEWAY_UNREACHABLE` / `ROUTE_UNREACHABLE` | 服务器线路或网络连接失败；稍后新建一次运行，持续失败时反馈 |
+| `CLAIM_NOT_VERIFIED` | 领取后未核验成功；先到游戏检查奖励，避免立即反复重跑 |
+| 没收到邮件 | 检查个人 Actions Email 设置、通知邮箱和垃圾邮件；任务没启动不一定有通知 |
+
+提交问题请使用 [Bug report 模板](.github/ISSUE_TEMPLATE/bug_report.yml)。只提供失败步骤、错误码、版本和脱敏日志；**不要上传账号密码、授权令牌、完整网络抓包或未检查过的浏览器存储文件**。公开仓库的代码、Issue 和运行日志可能被他人看到。
+
+## 技术说明与本地开发
+
+参考 [CONTRIBUTING.md](CONTRIBUTING.md)。GitHub 工作流只申请仓库读取权限；账号凭据仅传给登录领取步骤。版本解析步骤不接收账号凭据。不保存浏览器会话、不上传游戏截图或原始请求响应；同仓库的任务串行运行。
+
+版本数据来自官方网页与 Unity 资源索引，协议和线路配置仍依赖官方提供的兼容资源；资源或协议变化时可能需要人工适配。不要将“自动读取版本”等同于“自动修复任意更新”。
+
+本项目采用 [MIT License](LICENSE)。
