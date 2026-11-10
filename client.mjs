@@ -97,6 +97,10 @@ async function openSocket(url) {
   });
   return socket;
 }
+export function updateUnitySchema(root) {
+  const connectionType = root.lookupType('lq.ReqRequestConnection');
+  if (!connectionType.fields.platform) connectionType.add(new protobuf.Field('platform', 6, 'string'));
+}
 export async function connect(log = console.log) {
   log('步骤 1/4：读取官方版本、协议与服务器配置。');
   const versionInfo = await getJson(`${base}version.json`);
@@ -109,7 +113,10 @@ export async function connect(log = console.log) {
     return getJson(`${base}${prefix}/${path}`);
   };
   const [schema, config] = await Promise.all([resource('res/proto/liqi.json'), resource('config.json')]);
-  const root = protobuf.Root.fromJSON(schema); root.resolveAll();
+  const root = protobuf.Root.fromJSON(schema);
+  // Unity cli_route_pb adds the platform field missing from the legacy manifest.
+  updateUnitySchema(root);
+  root.resolveAll();
   const gateways = config.ip?.find(item => item.name === 'player')?.gateways;
   if (!gateways?.length) throw new Error('GATEWAY_CONFIG');
   log('步骤 2/4：获取线路并进行连接握手（不登录账号）。');
@@ -133,7 +140,7 @@ export async function connect(log = console.log) {
     let client;
     try {
       client = new Client(root, await openSocket(`wss://${route.domain}/gateway`));
-      const response = await client.rpc('Route', 'requestConnection', {type: 1, route_id: route.id, timestamp: Date.now()});
+      const response = await client.rpc('Route', 'requestConnection', {type: 1, route_id: route.id, timestamp: Date.now(), platform: 'Web'});
       if (response.result !== 1) throw new Error('ROUTE_REJECTED');
       return {client, version};
     } catch (error) {client?.close(); const code = /^[A-Za-z0-9_]+$/.test(error.message) ? error.message : 'PROTOCOL_ERROR'; log(`该线路握手未成功（${code}），尝试下一条官方线路。`);}

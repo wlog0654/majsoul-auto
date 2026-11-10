@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import protobuf from 'protobufjs';
-import { Client, trustedUrl, encodeRequest, loginBody, currentLoginVersion } from '../client.mjs';
+import { Client, trustedUrl, encodeRequest, loginBody, currentLoginVersion, updateUnitySchema } from '../client.mjs';
 const root = protobuf.parse(`syntax="proto3"; package lq;
 message Wrapper {string name=1; bytes data=2;}
 message Error {uint32 code=1;}
@@ -58,4 +58,14 @@ test('Unity login sends resource, package and current platform version format', 
   assert.equal(request.client_version_string, 'WebGL_2022-0.16.290');
   assert.equal(request.password.length, 64);
   assert.notEqual(request.password, 'example-password');
+});
+
+test('Unity handshake platform survives encoding against the legacy schema', () => {
+  const legacy = protobuf.parse('syntax="proto3";package lq;message ReqRequestConnection {uint32 type=2;string route_id=3;uint64 timestamp=4;}').root;
+  updateUnitySchema(legacy);
+  updateUnitySchema(legacy);
+  const type = legacy.lookupType('lq.ReqRequestConnection');
+  const message = type.decode(type.encode(type.fromObject({type:1,platform:'Web'})).finish());
+  assert.equal(message.platform,'Web');
+  assert.equal(type.fields.platform.id,6);
 });
