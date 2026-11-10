@@ -148,7 +148,7 @@ export async function connect(log = console.log) {
   throw new Error('ROUTE_UNREACHABLE');
 }
 export function currentLoginVersion() {
-  const value = JSON.parse(readFileSync(new URL('./client-version.json', import.meta.url), 'utf8'));
+  const value = JSON.parse(readFileSync(process.env.MAJSOUL_VERSION_FILE || new URL('./client-version.json', import.meta.url), 'utf8'));
   if (!/^\d+\.\d+\.\d+$/.test(value.resource) || !/^\d+\.\d+\.\d+$/.test(value.package) || value.platform !== 'WebGL') throw new Error('LOGIN_VERSION_CONFIG');
   return value;
 }

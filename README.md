@@ -2,7 +2,7 @@
 
 在 GitHub Actions 云端运行，你的电脑可以关机。针对 https://game.maj-soul.com/1/ 的邮箱密码登录。
 
-**当前状态：已修复等待旧版网页对象导致的超时；无凭据线路握手实测通过，11 项测试通过。尚未验证真实账号登录／领取。定时运行须手动启用。**
+**当前状态：真实账号登录和已领取状态查询已通过；新增自动读取官方版本。每日定时仍由 MAJSOUL_AUTO_ENABLED 控制。**
 
 ## 配置（只需一次）
 
@@ -48,6 +48,12 @@ Node.js 22：`npm ci`、`npm test`。`node claim.mjs --check-connection` 可在�
 
 `151` 的官方含义为“游戏版本过旧”，不代表密码错误。当前已按新版官方代码适配：`client_version.resource=0.16.290`、`client_version.package=4.0.51`、`client_version_string=WebGL_2022-0.16.290`。网页显示的 `.W` 是平台标记，不加入 resource 字段。
 
-`client-version.json` 保存核对过的登录版本；运行时下载的旧版 `version.json` 目前仅用于定位协议文件和线路配置，不用于登录版本。今后官方升级时，这份登录版本配置可能需要同步更新；不能保证长期免维护。
+GitHub Actions 每次先执行 `tools/resolve_version.py`：从官网页面读取程序包版本，从当前官方资源索引定位 `docs_version/version.json` 所在的 bundle，解析其中的资源版本，生成 `work/current-client-version.json`。登录步骤通过 `MAJSOUL_VERSION_FILE` 使用这份实时结果。无需为了普通版本号更新手动修改仓库或新增 Secrets。
 
-线路握手已补齐 Unity 协议字段 `ReqRequestConnection.platform`（字段号 6，字符串 `Web`）。仅修改登录版本不足以兼容新版服务。无账号密码的诊断请求补齐该字段后，返回值从 `151` 变为 `1002`；这不代表真实账号登录已通过。
+读取失败、出现多个冲突版本、官方资源路径或格式改变时，本次直接失败，不使用旧配置继续登录，也不自动重试密码。`client-version.json` 仅作为本地开发的手动版本配置；GitHub 工作流不会回退到它。
+
+自动跟随的是版本数据，不能自动修改登录协议、编写或执行官方下发的游戏代码。若协议、加密、握手方式或奖励接口改变，仍需人工维护。失败会出现在 Actions；如需邮件通知，请在 GitHub 个人 Settings → Notifications → Actions 中启用失败通知。
+
+线路握手已补齐 Unity 协议字段 `ReqRequestConnection.platform`（字段号 6，字符串 `Web`）。仅修改登录版本不足以兼容新版服务。无账号密码的诊断请求补齐该字段后，返回值从 `151` 变为 `1002`；之后已由用户在 GitHub Actions 实测确认真实账号登录及已领取状态查询成功。
+
+版本解析需要 Python 和 `requirements-version.txt` 中的 UnityPy；4 项 Python 测试另行运行。用于解析少量官方资源，不安装浏览器、不下载和启动完整游戏。

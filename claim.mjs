@@ -41,7 +41,7 @@ try {
   // Log only our fixed error codes; never log request/response bodies or credentials.
   const message = String(error?.message || '');
   const code = /^[A-Z][A-Za-z0-9_]{1,80}$/.test(message) ? message : 'CLIENT_ERROR';
-  const detail = code === 'RPC_login_151' ? '服务器要求更新客户端版本；请更新仓库的 client-version.json 并核对登录协议，勿重复尝试密码。' : '请检查网络、Secrets、账号验证或协议兼容性。';
+  const detail = code === 'RPC_login_151' ? '服务器不接受当前官方版本或握手协议；请核对自动版本读取日志和协议兼容性，勿重复尝试密码。' : '请检查网络、Secrets、账号验证或协议兼容性。';
   await report(`领取未完成：${code}。${detail}`);
   process.exitCode = 1;
 } finally {client?.close();}
