@@ -6,7 +6,20 @@
 
 项目通过服务接口完成操作，不启动完整游戏。没有月卡时不会购买、充值或进行对局。本项目为社区工具，与雀魂官方无隶属关系。
 
-已验证真实账号登录、月卡查询和“本游戏日已领取”的判断；**尚未完成“未领取 → 调用领取接口 → 成功核验”的真实账号验收**，欢迎反馈脱敏后的运行结果。不能保证所有账号或未来版本都可用。
+已验证真实账号登录、月卡查询和“本游戏日已领取”的判断；使用者已反馈实际领取成功。cron-job.org 外部触发也已完成 HTTP 204 和 Actions 执行成功的测试。自动定时仍需观察后续运行，不能保证所有账号或未来版本都可用。
+
+## 选择定时触发方式
+
+领取工作始终在你自己的 GitHub Actions 中完成，可以选择谁来触发它：
+
+| 方式 | 需要什么 | 适用情况 |
+|---|---|---|
+| GitHub 原生定时 | GitHub 账号和仓库配置 | 最少配置；每天 09:30、15:30，但可能延迟或漏触发 |
+| [cron-job.org 外部触发](docs/EXTERNAL-SCHEDULER.md) | 额外注册定时服务，配置仅授权目标仓库 Actions 写权限的令牌 | 原生定时不稳定，手动运行正常；默认每天北京时间 09:30，可增加下午补跑 |
+
+**手动 Run workflow 成功，但该时间段根本没有新的 schedule 记录时，可使用外部方案绕开 GitHub 原生 cron。** 外部服务不接收雀魂密码，也不负责实际领取；它只向 GitHub 发出运行请求。
+
+两种方式都应先完成下面的 Fork、Secrets 和手动运行配置。选择外部触发时，之后直接按[外部部署教程](docs/EXTERNAL-SCHEDULER.md)配置，不必开启原生定时变量。
 
 ## 快速开始
 
@@ -54,7 +67,7 @@ Fork 只复制代码，不会复制作者或其他人的 Secrets、Variables 和
 
 改过代码后要从工作流页面**新建 Run workflow**。旧记录里的 **Re-run jobs** 会继续使用旧提交的代码。
 
-### 5. 开启每日定时
+### 5. 开启每日定时（GitHub 原生方式）
 
 手动测试通过后，进入 **Settings → Secrets and variables → Actions → Variables → New repository variable**：
 
@@ -122,6 +135,10 @@ Fork 只复制代码，不会复制作者或其他人的 Secrets、Variables 和
 
 更深入的排查、官方依据和支持反馈清单见 [定时调度说明](docs/SCHEDULING.md)。下午补跑减少单次漏跑的影响，但两个时间仍由同一个 GitHub 调度服务触发，不构成独立保障。
 
-## 独立云端定时器（可选）
+## 独立云端定时器：原生定时不稳定时的替代方案
 
-需要绕开 GitHub 原生 cron 时，参考 [cron-job.org 部署步骤](docs/EXTERNAL-SCHEDULER.md)。需要自己注册并验证账号，以及只授权目标仓库 Actions 写权限的 GitHub 令牌；模板本身不会创建或启用外部任务。雀魂密码仍只保存在自己的 GitHub Secrets 中。
+按 [cron-job.org 完整部署教程](docs/EXTERNAL-SCHEDULER.md)配置：注册并验证邮箱 → 创建限定权限 GitHub 令牌 → 设置北京时间 09:30 的 POST 请求 → Test run 返回 204 → 确认 Actions 新运行成功 → 检查 Enabled 和 Next execution。
+
+该流程已由使用者测试通过；**204 只代表 GitHub 接受触发，不能单独证明领取成功**。GitHub Actions 邮件通知仍可使用，具体结果看 Summary。
+
+暂停方式不同：`MAJSOUL_AUTO_ENABLED=false` 只暂停原生定时领取；外部触发必须到 cron-job.org 禁用任务。不要 Disable GitHub workflow 来停原生 cron，否则外部触发也无法执行。详情、模板和故障表见教程。
