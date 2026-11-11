@@ -69,6 +69,8 @@
 
 ## 4. 邮件通知和暂停
 
+如果 GitHub 通知发到了教育邮箱，按 [添加个人邮箱并切换默认通知地址](../README.md#把通知发到个人邮箱保留教育邮箱) 操作：添加个人邮箱 → 邮件验证 → Default notifications email 选择个人邮箱。不需要改主邮箱或 Git 提交邮箱，但会影响其他使用默认地址的 GitHub 通知。Custom routing 主要适用于组织，不能用来单独路由这个个人仓库。
+
 原有 GitHub Actions 邮件通知可以继续使用，见 [README 的手机邮件设置](../README.md#开启手机邮件通知)。外部调度器使用你的 GitHub 令牌发送 workflow_dispatch，仍需实际测试收件，不能只依赖 cron-job.org 的触发成功提示。
 
 cron-job.org 的失败通知监测的是“有没有成功调用 GitHub”，不一定能发现 GitHub 后续领取失败；领取结果看 Actions 邮件与 Summary。没有成功执行定时任务时也不保证一定收到 GitHub 完成邮件。
