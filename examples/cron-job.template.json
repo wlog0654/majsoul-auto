@@ -1,0 +1,30 @@
+{
+  "job": {
+    "title": "雀魂月卡每日检查与补领",
+    "url": "https://api.github.com/repos/wlog0654/majsoul-auto/actions/workflows/claim.yml/dispatches",
+    "enabled": false,
+    "saveResponses": false,
+    "requestMethod": 1,
+    "redirectSuccess": false,
+    "requestTimeout": 30,
+    "schedule": {
+      "timezone": "Asia/Shanghai",
+      "expiresAt": 0,
+      "hours": [9, 15],
+      "minutes": [30],
+      "mdays": [-1],
+      "months": [-1],
+      "wdays": [-1]
+    },
+    "extendedData": {
+      "headers": {
+        "Authorization": "Bearer REPLACE_WITH_GITHUB_TOKEN",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "majsoul-auto-scheduler"
+      },
+      "body": "{\"ref\":\"main\"}"
+    }
+  }
+}
